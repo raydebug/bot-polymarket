@@ -1,0 +1,4 @@
+node_modules
+.env
+data/paper-state.json
+npm-debug.log*

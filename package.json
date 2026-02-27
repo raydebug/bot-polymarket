@@ -1,0 +1,16 @@
+{
+  "name": "bot-polymarket",
+  "version": "1.0.0",
+  "description": "Low-price Polymarket sweep bot (paper/live-ready scaffold)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "paper": "BOT_MODE=paper node src/index.js",
+    "live": "BOT_MODE=live node src/index.js",
+    "scan": "node src/index.js --once"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
