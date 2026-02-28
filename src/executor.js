@@ -2,8 +2,8 @@ const { config } = require("./config");
 const { upsertPosition } = require("./stateStore");
 const { createLiveClient, placeLiveBuy, getLiveAccountTotalUsd } = require("./liveClient");
 
-function getRemainingExposure(state) {
-  return Math.max(0, config.maxExposureUsd - state.cashUsedUsd);
+function getRemainingExposure(state, maxExposureUsd) {
+  return Math.max(0, maxExposureUsd - state.cashUsedUsd);
 }
 
 function getMarketExposure(state, marketId) {
@@ -30,18 +30,20 @@ async function executeCandidates(candidates, state) {
   const executed = [];
   const liveClient = config.botMode === "live" ? await createLiveClient() : null;
   const { accountTotalUsd, dynamicOrderUsd } = await resolveDynamicOrder(liveClient);
+  const maxExposureUsd = accountTotalUsd * (config.maxExposurePct / 100);
+  const maxExposurePerMarketUsd = accountTotalUsd * (config.maxExposurePerMarketPct / 100);
   let localSpentUsd = 0;
   const localMarketSpent = {};
 
   for (const candidate of candidates) {
-    const remaining = Math.max(0, getRemainingExposure(state) - localSpentUsd);
+    const remaining = Math.max(0, getRemainingExposure(state, maxExposureUsd) - localSpentUsd);
     if (remaining <= 0) break;
 
     const marketExposure = getMarketExposure(state, candidate.marketId);
     const marketSpent = localMarketSpent[candidate.marketId] || 0;
     const marketRemaining = Math.max(
       0,
-      config.maxExposurePerMarketUsd - marketExposure - marketSpent,
+      maxExposurePerMarketUsd - marketExposure - marketSpent,
     );
     if (marketRemaining <= 0) continue;
 
@@ -62,7 +64,13 @@ async function executeCandidates(candidates, state) {
     localSpentUsd += orderUsdFinal;
     localMarketSpent[candidate.marketId] = marketSpent + orderUsdFinal;
   }
-  return { executed, dynamicOrderUsd, accountTotalUsd };
+  return {
+    executed,
+    dynamicOrderUsd,
+    accountTotalUsd,
+    maxExposureUsd,
+    maxExposurePerMarketUsd,
+  };
 }
 
 module.exports = { executeCandidates };

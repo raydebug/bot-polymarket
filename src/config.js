@@ -31,8 +31,8 @@ const config = {
   orderFraction: toNumber(process.env.ORDER_FRACTION, 0.001),
   paperAccountUsd: toNumber(process.env.PAPER_ACCOUNT_USD, 10_000),
   maxOrdersPerScan: toNumber(process.env.MAX_ORDERS_PER_SCAN, 10),
-  maxExposureUsd: toNumber(process.env.MAX_EXPOSURE_USD, 500),
-  maxExposurePerMarketUsd: toNumber(process.env.MAX_EXPOSURE_PER_MARKET_USD, 100),
+  maxExposurePct: toNumber(process.env.MAX_EXPOSURE_PCT, 5),
+  maxExposurePerMarketPct: toNumber(process.env.MAX_EXPOSURE_PER_MARKET_PCT, 1),
   allowRepeatBuys: toBool(process.env.ALLOW_REPEAT_BUYS, false),
   gammaBaseUrl: process.env.GAMMA_BASE_URL || "https://gamma-api.polymarket.com",
   gammaPageSize: toNumber(process.env.GAMMA_PAGE_SIZE, 200),
@@ -58,6 +58,15 @@ function validateConfig() {
   }
   if (config.orderFraction <= 0) {
     throw new Error("ORDER_FRACTION must be > 0");
+  }
+  if (config.maxExposurePct <= 0 || config.maxExposurePct > 100) {
+    throw new Error("MAX_EXPOSURE_PCT must be in (0, 100]");
+  }
+  if (config.maxExposurePerMarketPct <= 0 || config.maxExposurePerMarketPct > 100) {
+    throw new Error("MAX_EXPOSURE_PER_MARKET_PCT must be in (0, 100]");
+  }
+  if (config.maxExposurePerMarketPct > config.maxExposurePct) {
+    throw new Error("MAX_EXPOSURE_PER_MARKET_PCT must be <= MAX_EXPOSURE_PCT");
   }
   if (!["auto", "fetch", "curl"].includes(config.gammaTransport)) {
     throw new Error("GAMMA_TRANSPORT must be one of: auto, fetch, curl");

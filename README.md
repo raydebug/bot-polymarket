@@ -34,8 +34,8 @@ Dashboard 默认开启，访问:
 - `ORDER_FRACTION=0.001`: 每笔金额 = 账户总额 * 该比例（即 1/1000）
 - `PAPER_ACCOUNT_USD=10000`: 仅 paper 模式使用；live 模式始终读取真实账户总额
 - `MAX_ORDERS_PER_SCAN=10`: 每轮最多买入笔数
-- `MAX_EXPOSURE_USD=500`: 总投入上限（风控）
-- `MAX_EXPOSURE_PER_MARKET_USD=100`: 单市场投入上限
+- `MAX_EXPOSURE_PCT=5`: 总投入上限（占账户总额百分比）
+- `MAX_EXPOSURE_PER_MARKET_PCT=1`: 单市场投入上限（占账户总额百分比）
 - `MIN_LIQUIDITY=500`: 只做最低流动性以上市场
 - `ALLOW_REPEAT_BUYS=false`: 同一 token 是否允许重复加仓
 - `GAMMA_PAGE_SIZE=50`: 行情分页大小（建议 50，避免响应过大）

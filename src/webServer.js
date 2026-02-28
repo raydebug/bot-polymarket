@@ -9,14 +9,28 @@ const { updateEnvValues } = require("./envFile");
 const htmlPath = path.join(__dirname, "web", "dashboard.html");
 
 const editableKeys = [
+  "BOT_MODE",
   "SCAN_INTERVAL_MS",
+  "MAX_ORDERS_PER_SCAN",
   "MAX_PRICE",
+  "MIN_PRICE",
+  "MIN_LIQUIDITY",
+  "MIN_DAYS_TO_END",
+  "MAX_DAYS_TO_END",
+  "INCLUDE_KEYWORDS",
+  "EXCLUDE_KEYWORDS",
   "ORDER_FRACTION",
   "PAPER_ACCOUNT_USD",
-  "MAX_EXPOSURE_USD",
-  "MAX_EXPOSURE_PER_MARKET_USD",
+  "MAX_EXPOSURE_PCT",
+  "MAX_EXPOSURE_PER_MARKET_PCT",
+  "ALLOW_REPEAT_BUYS",
   "GAMMA_PAGE_SIZE",
   "GAMMA_TRANSPORT",
+  "GAMMA_CURL_PROXY",
+  "WEB_ENABLED",
+  "WEB_AUTO_OPEN",
+  "WEB_HOST",
+  "WEB_PORT",
 ];
 
 function json(res, status, payload) {
@@ -26,14 +40,28 @@ function json(res, status, payload) {
 
 function getDashboardConfig() {
   return {
+    BOT_MODE: config.botMode,
     SCAN_INTERVAL_MS: config.scanIntervalMs,
+    MAX_ORDERS_PER_SCAN: config.maxOrdersPerScan,
     MAX_PRICE: config.maxPrice,
+    MIN_PRICE: config.minPrice,
+    MIN_LIQUIDITY: config.minLiquidity,
+    MIN_DAYS_TO_END: config.minDaysToEnd,
+    MAX_DAYS_TO_END: config.maxDaysToEnd,
+    INCLUDE_KEYWORDS: (config.includeKeywords || []).join(","),
+    EXCLUDE_KEYWORDS: (config.excludeKeywords || []).join(","),
     ORDER_FRACTION: config.orderFraction,
     PAPER_ACCOUNT_USD: config.paperAccountUsd,
-    MAX_EXPOSURE_USD: config.maxExposureUsd,
-    MAX_EXPOSURE_PER_MARKET_USD: config.maxExposurePerMarketUsd,
+    MAX_EXPOSURE_PCT: config.maxExposurePct,
+    MAX_EXPOSURE_PER_MARKET_PCT: config.maxExposurePerMarketPct,
+    ALLOW_REPEAT_BUYS: config.allowRepeatBuys,
     GAMMA_PAGE_SIZE: config.gammaPageSize,
     GAMMA_TRANSPORT: config.gammaTransport,
+    GAMMA_CURL_PROXY: config.gammaCurlProxy,
+    WEB_ENABLED: config.webEnabled,
+    WEB_AUTO_OPEN: config.webAutoOpen,
+    WEB_HOST: config.webHost,
+    WEB_PORT: config.webPort,
   };
 }
 
@@ -47,6 +75,12 @@ function deriveStatus(runtime) {
   const accountTotalUsd = config.botMode === "paper"
     ? config.paperAccountUsd
     : runtime.lastAccountTotalUsd || null;
+  const maxExposureUsd = accountTotalUsd == null
+    ? null
+    : accountTotalUsd * (config.maxExposurePct / 100);
+  const maxExposurePerMarketUsd = accountTotalUsd == null
+    ? null
+    : accountTotalUsd * (config.maxExposurePerMarketPct / 100);
   const positions = Object.values(state.positions || {});
 
   let settledCount = 0;
@@ -76,6 +110,8 @@ function deriveStatus(runtime) {
     tradeCount: (state.trades || []).length,
     dynamicOrderUsd: runtime.lastDynamicOrderUsd || 0,
     accountTotalUsd,
+    maxExposureUsd,
+    maxExposurePerMarketUsd,
     avgEntryPrice,
     avgOdds,
     winRate,
@@ -159,7 +195,10 @@ function startWebServer(runtime, logger) {
           if (Object.prototype.hasOwnProperty.call(incoming, key)) updates[key] = incoming[key];
         }
         updateEnvValues(updates);
-        json(res, 200, { ok: true, message: "配置已保存到 .env（建议重启生效）" });
+        json(res, 200, {
+          ok: true,
+          message: "配置已保存到 .env（请手动重启生效）",
+        });
         return;
       }
 

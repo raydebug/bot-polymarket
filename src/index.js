@@ -26,7 +26,13 @@ async function runScan(runtime) {
   const state = readState();
   const markets = await fetchAllMarkets();
   const candidates = pickCandidates(markets, state);
-  const { executed, dynamicOrderUsd, accountTotalUsd } = await executeCandidates(candidates, state);
+  const {
+    executed,
+    dynamicOrderUsd,
+    accountTotalUsd,
+    maxExposureUsd,
+    maxExposurePerMarketUsd,
+  } = await executeCandidates(candidates, state);
   const summary = markToMarket(state, markets);
   state.summary = summary;
   state.lastScan = {
@@ -36,6 +42,8 @@ async function runScan(runtime) {
     executed: executed.length,
     dynamicOrderUsd,
     accountTotalUsd,
+    maxExposureUsd,
+    maxExposurePerMarketUsd,
   };
   writeState(state);
   runtime.lastDynamicOrderUsd = dynamicOrderUsd;
@@ -47,6 +55,8 @@ async function runScan(runtime) {
     candidates: candidates.length,
     executed: executed.length,
     dynamicOrderUsd: Number(dynamicOrderUsd).toFixed(4),
+    maxExposureUsd: Number(maxExposureUsd).toFixed(2),
+    maxExposurePerMarketUsd: Number(maxExposurePerMarketUsd).toFixed(2),
   });
   if (executed.length) {
     for (const item of executed) {
@@ -78,7 +88,8 @@ async function main() {
     mode: config.botMode,
     maxPrice: config.maxPrice,
     orderFraction: config.orderFraction,
-    maxExposureUsd: config.maxExposureUsd,
+    maxExposurePct: config.maxExposurePct,
+    maxExposurePerMarketPct: config.maxExposurePerMarketPct,
     once,
   });
 

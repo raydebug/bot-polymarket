@@ -69,7 +69,7 @@
     </div>
 
     <div class="panel">
-      <h2>常用配置</h2>
+      <h2>参数配置页</h2>
       <div class="row" id="cfgForm"></div>
       <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
         <button id="saveBtn">保存到 .env</button>
@@ -81,14 +81,28 @@
 
   <script>
     const fields = [
+      ["BOT_MODE", "模式(paper/live)"],
       ["SCAN_INTERVAL_MS", "扫描间隔(ms)"],
+      ["MAX_ORDERS_PER_SCAN", "每轮最多下单数"],
       ["MAX_PRICE", "最大买入价"],
-      ["ORDER_FRACTION", "下单比例"],
+      ["MIN_PRICE", "最小买入价"],
+      ["MIN_LIQUIDITY", "最小流动性"],
+      ["MIN_DAYS_TO_END", "最少到期天数"],
+      ["MAX_DAYS_TO_END", "最多到期天数"],
+      ["INCLUDE_KEYWORDS", "关键词白名单(逗号分隔)"],
+      ["EXCLUDE_KEYWORDS", "关键词黑名单(逗号分隔)"],
+      ["ORDER_FRACTION", "下单比例(总额x比例)"],
       ["PAPER_ACCOUNT_USD", "模拟账户总额"],
-      ["MAX_EXPOSURE_USD", "总投入上限"],
-      ["MAX_EXPOSURE_PER_MARKET_USD", "单市场上限"],
+      ["MAX_EXPOSURE_PCT", "总投入上限(%)"],
+      ["MAX_EXPOSURE_PER_MARKET_PCT", "单市场上限(%)"],
+      ["ALLOW_REPEAT_BUYS", "允许重复买入(true/false)"],
       ["GAMMA_PAGE_SIZE", "行情分页"],
-      ["GAMMA_TRANSPORT", "行情通道(auto/fetch/curl)"]
+      ["GAMMA_TRANSPORT", "行情通道(auto/fetch/curl)"],
+      ["GAMMA_CURL_PROXY", "curl代理(可空)"],
+      ["WEB_ENABLED", "网页开关(true/false)"],
+      ["WEB_AUTO_OPEN", "启动自动开网页(true/false)"],
+      ["WEB_HOST", "网页监听地址"],
+      ["WEB_PORT", "网页端口"]
     ];
     let positionSort = { key: "pnl", dir: "desc" };
 
@@ -105,6 +119,8 @@
         ["持仓市值", `$${money(s.marketValue)}`, ""],
         ["浮盈亏", `$${money(s.totalPnl)}`, Number(s.totalPnl || 0) >= 0 ? "ok" : "bad"],
         ["动态单笔", `$${money(data.dynamicOrderUsd)}`, ""],
+        ["总投入上限($)", data.maxExposureUsd == null ? "--" : `$${money(data.maxExposureUsd)}`, ""],
+        ["单市场上限($)", data.maxExposurePerMarketUsd == null ? "--" : `$${money(data.maxExposurePerMarketUsd)}`, ""],
         ["胜率", data.winRate == null ? "--" : `${Number(data.winRate).toFixed(2)}% (${data.wonCount}/${data.settledCount})`, ""],
         ["平均赔率", data.avgOdds == null ? "--" : `${Number(data.avgOdds).toFixed(2)}x`, ""],
         ["持仓数", String(data.positionCount || 0), ""],
