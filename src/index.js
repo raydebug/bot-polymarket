@@ -7,6 +7,7 @@ const { fetchAllMarkets } = require("./gammaClient");
 const { pickCandidates } = require("./strategy");
 const { readState, writeState, markToMarket } = require("./stateStore");
 const { executeCandidates } = require("./executor");
+const { startWebServer } = require("./webServer");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -21,13 +22,25 @@ function printSummary(summary) {
   });
 }
 
-async function runScan() {
+async function runScan(runtime) {
   const state = readState();
   const markets = await fetchAllMarkets();
   const candidates = pickCandidates(markets, state);
-  const { executed, dynamicOrderUsd } = await executeCandidates(candidates, state);
+  const { executed, dynamicOrderUsd, accountTotalUsd } = await executeCandidates(candidates, state);
   const summary = markToMarket(state, markets);
+  state.summary = summary;
+  state.lastScan = {
+    at: new Date().toISOString(),
+    markets: markets.length,
+    candidates: candidates.length,
+    executed: executed.length,
+    dynamicOrderUsd,
+    accountTotalUsd,
+  };
   writeState(state);
+  runtime.lastDynamicOrderUsd = dynamicOrderUsd;
+  runtime.lastAccountTotalUsd = accountTotalUsd;
+  runtime.lastScan = state.lastScan;
 
   logger.info("scan result", {
     markets: markets.length,
@@ -52,6 +65,15 @@ async function runScan() {
 async function main() {
   validateConfig();
   const once = process.argv.includes("--once");
+  const runtime = {
+    lastDynamicOrderUsd: 0,
+    lastAccountTotalUsd: null,
+    lastScan: null,
+  };
+  if (config.webEnabled && !once) {
+    startWebServer(runtime, logger);
+  }
+
   logger.info("bot start", {
     mode: config.botMode,
     maxPrice: config.maxPrice,
@@ -61,13 +83,13 @@ async function main() {
   });
 
   if (once) {
-    await runScan();
+    await runScan(runtime);
     return;
   }
 
   while (true) {
     try {
-      await runScan();
+      await runScan(runtime);
     } catch (err) {
       logger.error("scan failed", { message: err.message });
     }

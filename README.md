@@ -19,6 +19,10 @@ npm run scan
 npm start
 ```
 
+Dashboard 默认开启，访问:
+
+`http://127.0.0.1:8787`
+
 ## 2. 策略参数（`.env`）
 
 - `MAX_PRICE=0.05`: 最大买入价（5 美分）
@@ -37,6 +41,10 @@ npm start
 - `GAMMA_PAGE_SIZE=50`: 行情分页大小（建议 50，避免响应过大）
 - `GAMMA_TRANSPORT=auto`: 行情拉取通道（`auto`/`fetch`/`curl`）
 - `GAMMA_CURL_PROXY=`: 仅 `curl` 通道使用的代理地址（如 `http://127.0.0.1:7890`）
+- `WEB_ENABLED=true`: 是否开启网页面板
+- `WEB_AUTO_OPEN=true`: 启动时自动用默认浏览器打开面板
+- `WEB_HOST=127.0.0.1`: 面板监听地址
+- `WEB_PORT=8787`: 面板端口
 
 ## 3. 数据与账本
 
@@ -45,6 +53,7 @@ npm start
   - 每笔模拟成交
   - 持仓均价和数量
   - 当前 mark-to-market 浮盈亏
+  - 最近一次扫描统计（候选数、成交数、动态下单金额）
 
 ## 4. 运行模式
 
@@ -88,3 +97,10 @@ GAMMA_TRANSPORT=curl
 GAMMA_TRANSPORT=curl
 GAMMA_CURL_PROXY=http://127.0.0.1:7890
 ```
+
+## 7. 网页面板能力
+
+- 当前账户概览（总额、投入、市值、PnL、动态单笔）
+- 持仓列表
+- 最近交易历史
+- 常用配置在线保存到 `.env`（保存后建议重启）

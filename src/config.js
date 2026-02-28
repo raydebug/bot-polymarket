@@ -38,6 +38,10 @@ const config = {
   gammaPageSize: toNumber(process.env.GAMMA_PAGE_SIZE, 200),
   gammaTransport: (process.env.GAMMA_TRANSPORT || "auto").toLowerCase(),
   gammaCurlProxy: process.env.GAMMA_CURL_PROXY || "",
+  webEnabled: toBool(process.env.WEB_ENABLED, true),
+  webAutoOpen: toBool(process.env.WEB_AUTO_OPEN, true),
+  webHost: process.env.WEB_HOST || "127.0.0.1",
+  webPort: toNumber(process.env.WEB_PORT, 8787),
   stateFile: process.env.STATE_FILE || path.join(process.cwd(), "data", "paper-state.json"),
   live: {
     host: process.env.CLOB_HOST || "https://clob.polymarket.com",
@@ -57,6 +61,9 @@ function validateConfig() {
   }
   if (!["auto", "fetch", "curl"].includes(config.gammaTransport)) {
     throw new Error("GAMMA_TRANSPORT must be one of: auto, fetch, curl");
+  }
+  if (!Number.isInteger(config.webPort) || config.webPort <= 0) {
+    throw new Error("WEB_PORT must be a positive integer");
   }
   if (config.botMode === "live") {
     if (!config.live.privateKey) throw new Error("POLYMARKET_PRIVATE_KEY is required in live mode");

@@ -15,18 +15,21 @@ function getMarketExposure(state, marketId) {
   return total;
 }
 
-async function resolveDynamicOrderUsd(liveClient) {
+async function resolveDynamicOrder(liveClient) {
   let accountTotalUsd = config.paperAccountUsd;
   if (config.botMode === "live") {
     accountTotalUsd = await getLiveAccountTotalUsd(liveClient);
   }
-  return accountTotalUsd * config.orderFraction;
+  return {
+    accountTotalUsd,
+    dynamicOrderUsd: accountTotalUsd * config.orderFraction,
+  };
 }
 
 async function executeCandidates(candidates, state) {
   const executed = [];
   const liveClient = config.botMode === "live" ? await createLiveClient() : null;
-  const dynamicOrderUsd = await resolveDynamicOrderUsd(liveClient);
+  const { accountTotalUsd, dynamicOrderUsd } = await resolveDynamicOrder(liveClient);
   let localSpentUsd = 0;
   const localMarketSpent = {};
 
@@ -59,7 +62,7 @@ async function executeCandidates(candidates, state) {
     localSpentUsd += orderUsdFinal;
     localMarketSpent[candidate.marketId] = marketSpent + orderUsdFinal;
   }
-  return { executed, dynamicOrderUsd };
+  return { executed, dynamicOrderUsd, accountTotalUsd };
 }
 
 module.exports = { executeCandidates };

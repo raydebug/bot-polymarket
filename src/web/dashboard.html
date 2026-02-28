@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polymarket Bot Dashboard</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #e2e8f0;
+      --ok: #16a34a;
+      --bad: #dc2626;
+      --accent: #0f766e;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif; background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 45%); color: var(--text); }
+    .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px 24px; }
+    h1 { margin: 0 0 16px; font-size: 24px; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 2px 10px rgba(15,23,42,0.04); }
+    .label { font-size: 12px; color: var(--muted); }
+    .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .value.ok { color: var(--ok); }
+    .value.bad { color: var(--bad); }
+    .panel { margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+    .panel h2 { margin: 0 0 10px; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; font-size: 13px; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    .row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    input, select { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
+    button { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 9px 12px; cursor: pointer; }
+    .muted { color: var(--muted); font-size: 12px; }
+    th.sortable { cursor: pointer; user-select: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Polymarket Bot Dashboard</h1>
+    <div class="grid" id="summary"></div>
+
+    <div class="panel">
+      <h2>持仓</h2>
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" data-sort-key="question">市场</th>
+            <th class="sortable" data-sort-key="outcome">Outcome</th>
+            <th class="sortable" data-sort-key="qty">数量</th>
+            <th class="sortable" data-sort-key="costUsd">成本</th>
+            <th class="sortable" data-sort-key="avgPrice">均价</th>
+            <th class="sortable" data-sort-key="markPrice">标记价</th>
+            <th class="sortable" data-sort-key="pnl">浮盈亏</th>
+          </tr>
+        </thead>
+        <tbody id="positions"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>交易历史（最近 100 条）</h2>
+      <table>
+        <thead><tr><th>时间</th><th>市场</th><th>方向</th><th>状态</th><th>价格</th><th>数量</th><th>金额</th></tr></thead>
+        <tbody id="trades"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>常用配置</h2>
+      <div class="row" id="cfgForm"></div>
+      <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
+        <button id="saveBtn">保存到 .env</button>
+        <span id="saveMsg" class="muted"></span>
+      </div>
+      <div class="muted" style="margin-top:8px;">保存后建议重启进程生效。</div>
+    </div>
+  </div>
+
+  <script>
+    const fields = [
+      ["SCAN_INTERVAL_MS", "扫描间隔(ms)"],
+      ["MAX_PRICE", "最大买入价"],
+      ["ORDER_FRACTION", "下单比例"],
+      ["PAPER_ACCOUNT_USD", "模拟账户总额"],
+      ["MAX_EXPOSURE_USD", "总投入上限"],
+      ["MAX_EXPOSURE_PER_MARKET_USD", "单市场上限"],
+      ["GAMMA_PAGE_SIZE", "行情分页"],
+      ["GAMMA_TRANSPORT", "行情通道(auto/fetch/curl)"]
+    ];
+    let positionSort = { key: "pnl", dir: "desc" };
+
+    function money(v) {
+      return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function renderSummary(data) {
+      const s = data.summary || {};
+      const cards = [
+        ["模式", data.mode || "paper", ""],
+        ["账户总额", `$${money(data.accountTotalUsd)}`, ""],
+        ["已投入", `$${money(s.cashUsedUsd)}`, ""],
+        ["持仓市值", `$${money(s.marketValue)}`, ""],
+        ["浮盈亏", `$${money(s.totalPnl)}`, Number(s.totalPnl || 0) >= 0 ? "ok" : "bad"],
+        ["动态单笔", `$${money(data.dynamicOrderUsd)}`, ""],
+        ["胜率", data.winRate == null ? "--" : `${Number(data.winRate).toFixed(2)}% (${data.wonCount}/${data.settledCount})`, ""],
+        ["平均赔率", data.avgOdds == null ? "--" : `${Number(data.avgOdds).toFixed(2)}x`, ""],
+        ["持仓数", String(data.positionCount || 0), ""],
+        ["交易数", String(data.tradeCount || 0), ""]
+      ];
+      const el = document.getElementById("summary");
+      el.innerHTML = cards.map(([k, v, cls]) => `<div class="card"><div class="label">${k}</div><div class="value ${cls}">${v}</div></div>`).join("");
+    }
+
+    function valueForSort(p, key) {
+      if (key === "pnl") {
+        return Number(p.qty || 0) * Number(p.markPrice || 0) - Number(p.costUsd || 0);
+      }
+      const v = p[key];
+      if (typeof v === "string") return v.toLowerCase();
+      return Number(v || 0);
+    }
+
+    function renderPositions(positions) {
+      const rows = Object.values(positions || {});
+      rows.sort((a, b) => {
+        const va = valueForSort(a, positionSort.key);
+        const vb = valueForSort(b, positionSort.key);
+        let cmp = 0;
+        if (typeof va === "string" || typeof vb === "string") cmp = String(va).localeCompare(String(vb));
+        else cmp = Number(va) - Number(vb);
+        return positionSort.dir === "asc" ? cmp : -cmp;
+      });
+
+      document.getElementById("positions").innerHTML = rows.slice(0, 200).map((p) => {
+        const pnl = Number(p.qty || 0) * Number(p.markPrice || 0) - Number(p.costUsd || 0);
+        const pnlCls = pnl >= 0 ? "ok" : "bad";
+        return `
+        <tr>
+          <td>${p.question || ""}</td>
+          <td>${p.outcome || ""}</td>
+          <td>${Number(p.qty || 0).toFixed(2)}</td>
+          <td>$${money(p.costUsd)}</td>
+          <td>${Number(p.avgPrice || 0).toFixed(4)}</td>
+          <td>${Number(p.markPrice || 0).toFixed(4)}</td>
+          <td><span class="value ${pnlCls}" style="font-size:13px;font-weight:600;">$${money(pnl)}</span></td>
+        </tr>
+      `;
+      }).join("") || '<tr><td colspan="7" class="muted">暂无持仓</td></tr>';
+    }
+
+    function renderTrades(trades) {
+      document.getElementById("trades").innerHTML = (trades || []).slice(0, 100).map((t) => `
+        <tr>
+          <td>${new Date(t.ts).toLocaleString()}</td>
+          <td>${t.question || ""}</td>
+          <td>${t.side || "BUY"} ${t.outcome || ""}</td>
+          <td><span style="color:#16a34a;font-weight:600;">已成交</span></td>
+          <td>${Number(t.price || 0).toFixed(4)}</td>
+          <td>${Number(t.qty || 0).toFixed(2)}</td>
+          <td>$${money(t.costUsd)}</td>
+        </tr>
+      `).join("") || '<tr><td colspan="7" class="muted">暂无交易</td></tr>';
+    }
+
+    function renderConfig(cfg) {
+      const form = document.getElementById("cfgForm");
+      form.innerHTML = fields.map(([k, label]) => `
+        <label>
+          <div class="muted">${label}</div>
+          <input id="cfg_${k}" value="${cfg[k] ?? ""}" />
+        </label>
+      `).join("");
+    }
+
+    async function loadAll() {
+      const [st, cfg, tr] = await Promise.all([
+        fetch('/api/status').then(r => r.json()),
+        fetch('/api/config').then(r => r.json()),
+        fetch('/api/trades?limit=100').then(r => r.json())
+      ]);
+      renderSummary(st);
+      renderPositions(st.positions || {});
+      renderTrades(tr.trades || []);
+      renderConfig(cfg);
+    }
+
+    async function saveConfig() {
+      const payload = {};
+      for (const [k] of fields) {
+        payload[k] = document.getElementById(`cfg_${k}`).value;
+      }
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      document.getElementById('saveMsg').textContent = json.message || '已保存';
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', saveConfig);
+    document.querySelectorAll('th.sortable[data-sort-key]').forEach((th) => {
+      th.addEventListener('click', () => {
+        const key = th.getAttribute('data-sort-key');
+        if (positionSort.key === key) {
+          positionSort.dir = positionSort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+          positionSort = { key, dir: 'desc' };
+        }
+        loadAll().catch(() => {});
+      });
+    });
+    loadAll().catch((e) => { document.getElementById('saveMsg').textContent = `加载失败: ${e.message}`; });
+    setInterval(() => loadAll().catch(() => {}), 5000);
+  </script>
+</body>
+</html>

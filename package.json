@@ -7,7 +7,8 @@
     "start": "node src/index.js",
     "paper": "BOT_MODE=paper node src/index.js",
     "live": "BOT_MODE=live node src/index.js",
-    "scan": "node src/index.js --once"
+    "scan": "node src/index.js --once",
+    "web": "node src/webOnly.js"
   },
   "keywords": [],
   "author": "",

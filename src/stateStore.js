@@ -8,6 +8,13 @@ function emptyState() {
     positions: {},
     seenTokenIds: {},
     trades: [],
+    summary: {
+      cashUsedUsd: 0,
+      marketValue: 0,
+      unrealizedPnl: 0,
+      totalPnl: 0,
+    },
+    lastScan: null,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -39,6 +46,7 @@ function upsertPosition(state, candidate, orderUsd) {
     marketId: candidate.marketId,
     question: candidate.question,
     outcome: candidate.outcome,
+    endDate: candidate.endDate || null,
     avgPrice: 0,
     qty: 0,
     costUsd: 0,
@@ -51,6 +59,7 @@ function upsertPosition(state, candidate, orderUsd) {
 
   state.positions[candidate.key] = {
     ...old,
+    endDate: old.endDate || candidate.endDate || null,
     qty: newQty,
     costUsd: newCost,
     avgPrice,
