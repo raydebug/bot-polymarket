@@ -74,9 +74,11 @@
       <div class="row" id="cfgForm"></div>
       <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
         <button id="saveBtn">保存到 .env</button>
+        <button id="resumeBtn" type="button" style="background:#64748b;">恢复自动刷新</button>
         <span id="saveMsg" class="muted"></span>
       </div>
-      <div class="muted" style="margin-top:8px;">保存后建议重启进程生效。</div>
+      <div class="muted" id="refreshState" style="margin-top:8px;">自动刷新中（5秒）</div>
+      <div class="muted" style="margin-top:4px;">保存后建议重启进程生效。</div>
     </div>
   </div>
 
@@ -106,6 +108,19 @@
       ["WEB_PORT", "网页端口"]
     ];
     let positionSort = { key: "pnl", dir: "desc" };
+    let refreshPaused = false;
+    let hasUnsavedChanges = false;
+
+    function setRefreshPaused(paused, reason = "") {
+      refreshPaused = paused;
+      const state = document.getElementById("refreshState");
+      if (!state) return;
+      if (paused) {
+        state.textContent = reason || "检测到配置变更，已暂停自动刷新";
+      } else {
+        state.textContent = "自动刷新中（5秒）";
+      }
+    }
 
     function money(v) {
       return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -197,6 +212,12 @@
           <input id="cfg_${k}" value="${cfg[k] ?? ""}" />
         </label>
       `).join("");
+      form.querySelectorAll("input").forEach((input) => {
+        input.addEventListener("input", () => {
+          hasUnsavedChanges = true;
+          setRefreshPaused(true, "检测到配置变更，已暂停自动刷新（先保存或点恢复）");
+        });
+      });
     }
 
     async function loadAll() {
@@ -223,9 +244,20 @@
       });
       const json = await res.json();
       document.getElementById('saveMsg').textContent = json.message || '已保存';
+      hasUnsavedChanges = false;
+      setRefreshPaused(false);
+      loadAll().catch(() => {});
     }
 
     document.getElementById('saveBtn').addEventListener('click', saveConfig);
+    document.getElementById('resumeBtn').addEventListener('click', () => {
+      if (hasUnsavedChanges) {
+        document.getElementById('saveMsg').textContent = '你有未保存变更，确认放弃后再点恢复';
+        return;
+      }
+      setRefreshPaused(false);
+      loadAll().catch(() => {});
+    });
     document.querySelectorAll('th.sortable[data-sort-key]').forEach((th) => {
       th.addEventListener('click', () => {
         const key = th.getAttribute('data-sort-key');
@@ -238,7 +270,10 @@
       });
     });
     loadAll().catch((e) => { document.getElementById('saveMsg').textContent = `加载失败: ${e.message}`; });
-    setInterval(() => loadAll().catch(() => {}), 5000);
+    setInterval(() => {
+      if (refreshPaused) return;
+      loadAll().catch(() => {});
+    }, 5000);
   </script>
 </body>
 </html>
