@@ -4,7 +4,7 @@ const http = require("http");
 const { spawn } = require("child_process");
 const { config } = require("./config");
 const { readState } = require("./stateStore");
-const { updateEnvValues } = require("./envFile");
+const { updateEnvValues, readEnvMap } = require("./envFile");
 
 const htmlPath = path.join(__dirname, "web", "dashboard.html");
 
@@ -39,7 +39,7 @@ function json(res, status, payload) {
 }
 
 function getDashboardConfig() {
-  return {
+  const fallback = {
     BOT_MODE: config.botMode,
     SCAN_INTERVAL_MS: config.scanIntervalMs,
     MAX_ORDERS_PER_SCAN: config.maxOrdersPerScan,
@@ -63,6 +63,16 @@ function getDashboardConfig() {
     WEB_HOST: config.webHost,
     WEB_PORT: config.webPort,
   };
+  const envMap = readEnvMap();
+  const out = {};
+  for (const [key, value] of Object.entries(fallback)) {
+    if (Object.prototype.hasOwnProperty.call(envMap, key)) {
+      out[key] = envMap[key];
+    } else {
+      out[key] = String(value ?? "");
+    }
+  }
+  return out;
 }
 
 function deriveStatus(runtime) {

@@ -30,4 +30,19 @@ function updateEnvValues(updates) {
   fs.writeFileSync(envPath, out, "utf8");
 }
 
-module.exports = { envPath, updateEnvValues };
+function readEnvMap() {
+  const lines = readEnvLines();
+  const out = {};
+  for (const raw of lines) {
+    const line = String(raw || "").trim();
+    if (!line || line.startsWith("#")) continue;
+    const idx = line.indexOf("=");
+    if (idx <= 0) continue;
+    const key = line.slice(0, idx).trim();
+    const value = line.slice(idx + 1).trim();
+    out[key] = value;
+  }
+  return out;
+}
+
+module.exports = { envPath, updateEnvValues, readEnvMap };
