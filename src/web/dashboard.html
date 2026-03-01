@@ -71,6 +71,10 @@
 
     <div class="panel">
       <h2>参数配置页</h2>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+        <button id="modeToggleBtn" type="button" style="background:#334155;">切换到 Live</button>
+        <span id="modeState" class="muted">当前模式: paper</span>
+      </div>
       <div class="row" id="cfgForm"></div>
       <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
         <button id="saveBtn">保存到 .env</button>
@@ -110,6 +114,7 @@
     let positionSort = { key: "pnl", dir: "desc" };
     let refreshPaused = false;
     let hasUnsavedChanges = false;
+    let lastConfig = {};
 
     function setRefreshPaused(paused, reason = "") {
       refreshPaused = paused;
@@ -205,6 +210,7 @@
     }
 
     function renderConfig(cfg) {
+      lastConfig = { ...cfg };
       const form = document.getElementById("cfgForm");
       form.innerHTML = fields.map(([k, label]) => `
         <label>
@@ -212,6 +218,11 @@
           <input id="cfg_${k}" value="${cfg[k] ?? ""}" />
         </label>
       `).join("");
+      const mode = String(cfg.BOT_MODE || "paper").toLowerCase() === "live" ? "live" : "paper";
+      const modeState = document.getElementById("modeState");
+      const modeToggleBtn = document.getElementById("modeToggleBtn");
+      modeState.textContent = `当前模式: ${mode}`;
+      modeToggleBtn.textContent = mode === "paper" ? "切换到 Live" : "切换到 Paper";
       form.querySelectorAll("input").forEach((input) => {
         input.addEventListener("input", () => {
           hasUnsavedChanges = true;
@@ -249,7 +260,23 @@
       loadAll().catch(() => {});
     }
 
+    async function toggleMode() {
+      const current = String(lastConfig.BOT_MODE || document.getElementById("cfg_BOT_MODE")?.value || "paper").toLowerCase();
+      const next = current === "live" ? "paper" : "live";
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ BOT_MODE: next })
+      });
+      const json = await res.json();
+      document.getElementById('saveMsg').textContent = `${json.message || "已保存"}（模式已切换为 ${next}）`;
+      hasUnsavedChanges = false;
+      setRefreshPaused(false);
+      loadAll().catch(() => {});
+    }
+
     document.getElementById('saveBtn').addEventListener('click', saveConfig);
+    document.getElementById('modeToggleBtn').addEventListener('click', toggleMode);
     document.getElementById('resumeBtn').addEventListener('click', () => {
       if (hasUnsavedChanges) {
         document.getElementById('saveMsg').textContent = '你有未保存变更，确认放弃后再点恢复';
