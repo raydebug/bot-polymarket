@@ -6,7 +6,7 @@ const logger = require("./logger");
 const { fetchAllMarkets } = require("./gammaClient");
 const { pickCandidates } = require("./strategy");
 const { readState, writeState, markToMarket } = require("./stateStore");
-const { executeCandidates } = require("./executor");
+const { executeCandidates, resolveExecutionParams } = require("./executor");
 const { startWebServer } = require("./webServer");
 
 function sleep(ms) {
@@ -24,15 +24,19 @@ function printSummary(summary) {
 
 async function runScan(runtime) {
   const state = readState();
+  const executionParams = await resolveExecutionParams();
   const markets = await fetchAllMarkets();
-  const candidates = pickCandidates(markets, state);
+  const candidates = pickCandidates(markets, state, {
+    minLiquidityUsd: executionParams.minLiquidityUsd,
+  });
   const {
     executed,
     dynamicOrderUsd,
     accountTotalUsd,
     maxExposureUsd,
     maxExposurePerMarketUsd,
-  } = await executeCandidates(candidates, state);
+    minLiquidityUsd,
+  } = await executeCandidates(candidates, state, executionParams);
   const summary = markToMarket(state, markets);
   state.summary = summary;
   state.lastScan = {
@@ -44,6 +48,7 @@ async function runScan(runtime) {
     accountTotalUsd,
     maxExposureUsd,
     maxExposurePerMarketUsd,
+    minLiquidityUsd,
   };
   writeState(state);
   runtime.lastDynamicOrderUsd = dynamicOrderUsd;
@@ -57,6 +62,7 @@ async function runScan(runtime) {
     dynamicOrderUsd: Number(dynamicOrderUsd).toFixed(4),
     maxExposureUsd: Number(maxExposureUsd).toFixed(2),
     maxExposurePerMarketUsd: Number(maxExposurePerMarketUsd).toFixed(2),
+    minLiquidityUsd: Number(minLiquidityUsd).toFixed(2),
   });
   if (executed.length) {
     for (const item of executed) {
@@ -90,6 +96,7 @@ async function main() {
     orderFraction: config.orderFraction,
     maxExposurePct: config.maxExposurePct,
     maxExposurePerMarketPct: config.maxExposurePerMarketPct,
+    minLiquidityMultiplier: config.minLiquidityMultiplier,
     once,
   });
 

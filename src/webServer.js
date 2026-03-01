@@ -14,7 +14,7 @@ const editableKeys = [
   "MAX_ORDERS_PER_SCAN",
   "MAX_PRICE",
   "MIN_PRICE",
-  "MIN_LIQUIDITY",
+  "MIN_LIQUIDITY_MULTIPLIER",
   "MIN_DAYS_TO_END",
   "MAX_DAYS_TO_END",
   "INCLUDE_KEYWORDS",
@@ -45,7 +45,7 @@ function getDashboardConfig() {
     MAX_ORDERS_PER_SCAN: config.maxOrdersPerScan,
     MAX_PRICE: config.maxPrice,
     MIN_PRICE: config.minPrice,
-    MIN_LIQUIDITY: config.minLiquidity,
+    MIN_LIQUIDITY_MULTIPLIER: config.minLiquidityMultiplier,
     MIN_DAYS_TO_END: config.minDaysToEnd,
     MAX_DAYS_TO_END: config.maxDaysToEnd,
     INCLUDE_KEYWORDS: (config.includeKeywords || []).join(","),
@@ -81,6 +81,9 @@ function deriveStatus(runtime) {
   const maxExposurePerMarketUsd = accountTotalUsd == null
     ? null
     : accountTotalUsd * (config.maxExposurePerMarketPct / 100);
+  const minLiquidityUsd = maxExposurePerMarketUsd == null
+    ? null
+    : maxExposurePerMarketUsd * config.minLiquidityMultiplier;
   const positions = Object.values(state.positions || {});
 
   let settledCount = 0;
@@ -112,6 +115,7 @@ function deriveStatus(runtime) {
     accountTotalUsd,
     maxExposureUsd,
     maxExposurePerMarketUsd,
+    minLiquidityUsd,
     avgEntryPrice,
     avgOdds,
     winRate,

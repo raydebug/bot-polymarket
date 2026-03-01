@@ -36,7 +36,7 @@ Dashboard 默认开启，访问:
 - `MAX_ORDERS_PER_SCAN=10`: 每轮最多买入笔数
 - `MAX_EXPOSURE_PCT=5`: 总投入上限（占账户总额百分比）
 - `MAX_EXPOSURE_PER_MARKET_PCT=1`: 单市场投入上限（占账户总额百分比）
-- `MIN_LIQUIDITY=500`: 只做最低流动性以上市场
+- `MIN_LIQUIDITY_MULTIPLIER=10`: 最小流动性阈值 = 单市场上限(美元) x 该倍数
 - `ALLOW_REPEAT_BUYS=false`: 同一 token 是否允许重复加仓
 - `GAMMA_PAGE_SIZE=50`: 行情分页大小（建议 50，避免响应过大）
 - `GAMMA_TRANSPORT=auto`: 行情拉取通道（`auto`/`fetch`/`curl`）

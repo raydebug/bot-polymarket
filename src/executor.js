@@ -26,12 +26,33 @@ async function resolveDynamicOrder(liveClient) {
   };
 }
 
-async function executeCandidates(candidates, state) {
-  const executed = [];
+async function resolveExecutionParams() {
   const liveClient = config.botMode === "live" ? await createLiveClient() : null;
   const { accountTotalUsd, dynamicOrderUsd } = await resolveDynamicOrder(liveClient);
   const maxExposureUsd = accountTotalUsd * (config.maxExposurePct / 100);
   const maxExposurePerMarketUsd = accountTotalUsd * (config.maxExposurePerMarketPct / 100);
+  const minLiquidityUsd = maxExposurePerMarketUsd * config.minLiquidityMultiplier;
+  return {
+    liveClient,
+    accountTotalUsd,
+    dynamicOrderUsd,
+    maxExposureUsd,
+    maxExposurePerMarketUsd,
+    minLiquidityUsd,
+  };
+}
+
+async function executeCandidates(candidates, state, executionParams) {
+  const executed = [];
+  const params = executionParams || (await resolveExecutionParams());
+  const {
+    liveClient,
+    accountTotalUsd,
+    dynamicOrderUsd,
+    maxExposureUsd,
+    maxExposurePerMarketUsd,
+    minLiquidityUsd,
+  } = params;
   let localSpentUsd = 0;
   const localMarketSpent = {};
 
@@ -70,7 +91,8 @@ async function executeCandidates(candidates, state) {
     accountTotalUsd,
     maxExposureUsd,
     maxExposurePerMarketUsd,
+    minLiquidityUsd,
   };
 }
 
-module.exports = { executeCandidates };
+module.exports = { executeCandidates, resolveExecutionParams };

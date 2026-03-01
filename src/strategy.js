@@ -20,11 +20,14 @@ function matchesTextFilters(question) {
   return true;
 }
 
-function pickCandidates(markets, state) {
+function pickCandidates(markets, state, options = {}) {
+  const minLiquidityUsd = Number.isFinite(Number(options.minLiquidityUsd))
+    ? Number(options.minLiquidityUsd)
+    : 0;
   const candidates = [];
   for (const market of markets) {
     if (!market.active || market.closed) continue;
-    if (market.liquidity < config.minLiquidity) continue;
+    if (market.liquidity < minLiquidityUsd) continue;
     if (!matchesTextFilters(market.question)) continue;
 
     const d = daysUntil(market.endDate);

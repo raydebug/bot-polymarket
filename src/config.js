@@ -23,7 +23,7 @@ const config = {
   scanIntervalMs: toNumber(process.env.SCAN_INTERVAL_MS, 30_000),
   maxPrice: toNumber(process.env.MAX_PRICE, 0.05),
   minPrice: toNumber(process.env.MIN_PRICE, 0.005),
-  minLiquidity: toNumber(process.env.MIN_LIQUIDITY, 500),
+  minLiquidityMultiplier: toNumber(process.env.MIN_LIQUIDITY_MULTIPLIER, 10),
   minDaysToEnd: toNumber(process.env.MIN_DAYS_TO_END, 0),
   maxDaysToEnd: toNumber(process.env.MAX_DAYS_TO_END, 365),
   includeKeywords: toList(process.env.INCLUDE_KEYWORDS),
@@ -58,6 +58,9 @@ function validateConfig() {
   }
   if (config.orderFraction <= 0) {
     throw new Error("ORDER_FRACTION must be > 0");
+  }
+  if (config.minLiquidityMultiplier <= 0) {
+    throw new Error("MIN_LIQUIDITY_MULTIPLIER must be > 0");
   }
   if (config.maxExposurePct <= 0 || config.maxExposurePct > 100) {
     throw new Error("MAX_EXPOSURE_PCT must be in (0, 100]");
