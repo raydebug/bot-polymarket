@@ -27,6 +27,31 @@ function buildSide(outcomeName) {
   return "BUY";
 }
 
+function hasManualApiCreds() {
+  return Boolean(config.live.apiKey && config.live.apiSecret && config.live.apiPassphrase);
+}
+
+async function applyManualApiCreds(client) {
+  const creds = {
+    key: config.live.apiKey,
+    secret: config.live.apiSecret,
+    passphrase: config.live.apiPassphrase,
+  };
+
+  if (typeof client.setApiCreds === "function") {
+    await client.setApiCreds(creds);
+    return;
+  }
+  if (typeof client.setApiCredentials === "function") {
+    await client.setApiCredentials(creds);
+    return;
+  }
+
+  // Fallback for client versions exposing mutable creds fields.
+  client.apiCreds = creds;
+  client.apiKey = creds;
+}
+
 async function createLiveClient() {
   validateLiveConfig();
   const mod = requireClobClient();
@@ -38,7 +63,9 @@ async function createLiveClient() {
     config.live.funder,
   );
 
-  if (typeof client.createOrDeriveApiKey === "function") {
+  if (hasManualApiCreds()) {
+    await applyManualApiCreds(client);
+  } else if (typeof client.createOrDeriveApiKey === "function") {
     await client.createOrDeriveApiKey();
   }
   return client;

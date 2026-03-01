@@ -48,6 +48,9 @@ const config = {
     chainId: toNumber(process.env.CLOB_CHAIN_ID, 137),
     privateKey: process.env.POLYMARKET_PRIVATE_KEY || "",
     funder: process.env.POLYMARKET_FUNDER || "",
+    apiKey: process.env.CLOB_API_KEY || "",
+    apiSecret: process.env.CLOB_API_SECRET || "",
+    apiPassphrase: process.env.CLOB_API_PASSPHRASE || "",
     orderType: process.env.LIVE_ORDER_TYPE || "GTC",
   },
 };
@@ -80,6 +83,13 @@ function validateConfig() {
   if (config.botMode === "live") {
     if (!config.live.privateKey) throw new Error("POLYMARKET_PRIVATE_KEY is required in live mode");
     if (!config.live.funder) throw new Error("POLYMARKET_FUNDER is required in live mode");
+    const provided = [config.live.apiKey, config.live.apiSecret, config.live.apiPassphrase]
+      .filter((v) => Boolean(v)).length;
+    if (provided > 0 && provided < 3) {
+      throw new Error(
+        "when using manual API creds, set all: CLOB_API_KEY, CLOB_API_SECRET, CLOB_API_PASSPHRASE",
+      );
+    }
   }
 }
 
