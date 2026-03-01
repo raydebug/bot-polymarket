@@ -93,7 +93,7 @@ function deriveStatus(runtime) {
     : accountTotalUsd * (config.maxExposurePerMarketPct / 100);
   const minLiquidityUsd = maxExposurePerMarketUsd == null
     ? null
-    : maxExposurePerMarketUsd * config.minLiquidityMultiplier;
+    : (runtime.lastDynamicOrderUsd || 0) * config.minLiquidityMultiplier;
   const positions = Object.values(state.positions || {});
 
   let settledCount = 0;

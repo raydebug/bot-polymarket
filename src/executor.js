@@ -31,7 +31,7 @@ async function resolveExecutionParams() {
   const { accountTotalUsd, dynamicOrderUsd } = await resolveDynamicOrder(liveClient);
   const maxExposureUsd = accountTotalUsd * (config.maxExposurePct / 100);
   const maxExposurePerMarketUsd = accountTotalUsd * (config.maxExposurePerMarketPct / 100);
-  const minLiquidityUsd = maxExposurePerMarketUsd * config.minLiquidityMultiplier;
+  const minLiquidityUsd = dynamicOrderUsd * config.minLiquidityMultiplier;
   return {
     liveClient,
     accountTotalUsd,
